@@ -29,12 +29,14 @@ onMounted(async () => {
 </script>
 
 <style>
-/* Global styles - can be moved to assets/main.css */
+/* Global styles - to be minimized when using PrimeVue extensively */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  color: #333;
+  font-family: var(--font-family); /* Use PrimeVue's font family */
+  background-color: var(--surface-ground); /* Use PrimeVue's background color */
+  color: var(--text-color); /* Use PrimeVue's text color */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app-container {
@@ -45,121 +47,49 @@ body {
 
 .main-content {
   flex-grow: 1;
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  /* Padding can be managed by PrimeFlex classes on a per-view basis e.g. p-p-4 */
+  /* max-width: 1200px; */ /* This can be handled by layout containers if needed */
+  /* margin: 0 auto; */
+  /* width: 100%; */
 }
-
-header { /* Style for Navbar if needed directly here */
-  background-color: #333;
-  color: white;
-  padding: 1rem;
-  text-align: center;
-}
-
-nav ul {
-  list-style-type: none;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-}
-
-nav ul li {
-  margin: 0 15px;
-}
-
-nav ul li a {
-  color: white;
-  text-decoration: none;
-}
-
-nav ul li a:hover, .nav-button:hover {
-  text-decoration: underline;
-}
-
-.nav-button {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: inherit;
-  font-family: inherit;
-}
-
 
 footer {
   text-align: center;
-  padding: 10px;
-  background-color: #333;
-  color: white;
+  padding: 1rem; /* Use consistent spacing */
+  background-color: var(--surface-section); /* Example using a PrimeVue variable */
+  color: var(--text-color);
+  border-top: 1px solid var(--surface-border);
   margin-top: auto; /* Pushes footer to the bottom */
 }
 
-/* Basic form styling */
-.form-group {
-  margin-bottom: 1rem;
+/* Basic helper classes that might still be useful if not covered by PrimeFlex */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-color-secondary);
 }
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-.form-group textarea {
-  min-height: 80px;
-}
-
-button, .button {
-  padding: 0.75rem 1.5rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 1rem;
-}
-button:hover, .button:hover {
-  background-color: #0056b3;
-}
-button.secondary, .button.secondary {
-  background-color: #6c757d;
-}
-button.secondary:hover, .button.secondary:hover {
-  background-color: #545b62;
-}
-button.danger, .button.danger {
-  background-color: #dc3545;
-}
-button.danger:hover, .button.danger:hover {
-  background-color: #b02a37;
-}
-
 .error-message {
-  color: red;
+  color: var(--red-500); /* PrimeVue color variable */
+  margin-bottom: 1rem;
+  /* Consider using p-message for inline errors or Toast for global errors */
+}
+.success-message {
+  color: var(--green-500); /* PrimeVue color variable */
   margin-bottom: 1rem;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-th {
-  background-color: #f0f0f0;
-}
+/*
+  Most form, button, table styles are now handled by PrimeVue components.
+  Customizations should be done via PrimeVue's theming/styling capabilities
+  or by targeting PrimeVue's specific classes carefully.
+  Avoid overly broad selectors that might conflict.
+
+  Example:
+  .p-button { // Targets all PrimeVue buttons
+    // custom styles...
+  }
+  .p-datatable .p-datatable-thead > tr > th { // Targets DataTable headers
+    // custom styles...
+  }
+*/
 </style>

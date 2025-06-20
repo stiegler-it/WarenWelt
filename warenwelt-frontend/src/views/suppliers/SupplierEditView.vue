@@ -1,59 +1,78 @@
 <template>
-  <div class="supplier-edit-view">
-    <h1>{{ isNew ? 'Neuen Lieferant anlegen' : 'Lieferant bearbeiten' }}</h1>
-    <form @submit.prevent="saveSupplier">
-      <div class="form-group">
-        <label for="supplier_number">Lieferantennummer:</label>
-        <input type="text" id="supplier_number" v-model="supplier.supplier_number" required />
-      </div>
-      <div class="form-group">
-        <label for="company_name">Firmenname:</label>
-        <input type="text" id="company_name" v-model="supplier.company_name" />
-      </div>
-      <div class="form-group">
-        <label for="first_name">Vorname:</label>
-        <input type="text" id="first_name" v-model="supplier.first_name" />
-      </div>
-      <div class="form-group">
-        <label for="last_name">Nachname:</label>
-        <input type="text" id="last_name" v-model="supplier.last_name" />
-      </div>
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input type="email" id="email" v-model="supplier.email" />
-      </div>
-      <div class="form-group">
-        <label for="phone">Telefon:</label>
-        <input type="tel" id="phone" v-model="supplier.phone" />
-      </div>
-      <div class="form-group">
-        <label>
-          <input type="checkbox" v-model="supplier.is_internal" />
-          Interner Lieferant (für Eigenbestand)
-        </label>
-      </div>
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      <button type="submit" :disabled="isLoading">{{ isLoading ? 'Speichern...' : 'Speichern' }}</button>
-      <router-link to="/suppliers" class="button secondary">Abbrechen</router-link>
-    </form>
+  <div class="supplier-edit-view p-p-4">
+    <Card>
+      <template #title>
+        {{ isNewPage ? 'Neuen Lieferant anlegen' : 'Lieferant bearbeiten' }}
+      </template>
+      <template #content>
+        <div v-if="pageLoading" class="text-center p-p-4">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+          <p>Lade Lieferantendaten...</p>
+        </div>
+        <form @submit.prevent="saveSupplier" v-else>
+          <div class="p-fluid grid">
+            <div class="field col-12 md:col-6">
+              <label for="supplier_number">Lieferantennummer*</label>
+              <InputText id="supplier_number" v-model="supplier.supplier_number" required />
+            </div>
+            <div class="field col-12 md:col-6">
+              <label for="company_name">Firmenname</label>
+              <InputText id="company_name" v-model="supplier.company_name" />
+            </div>
+            <div class="field col-12 md:col-6">
+              <label for="first_name">Vorname</label>
+              <InputText id="first_name" v-model="supplier.first_name" />
+            </div>
+            <div class="field col-12 md:col-6">
+              <label for="last_name">Nachname</label>
+              <InputText id="last_name" v-model="supplier.last_name" />
+            </div>
+            <div class="field col-12 md:col-6">
+              <label for="email">Email</label>
+              <InputText id="email" type="email" v-model="supplier.email" />
+            </div>
+            <div class="field col-12 md:col-6">
+              <label for="phone">Telefon</label>
+              <InputText id="phone" v-model="supplier.phone" />
+            </div>
+            <div class="field-checkbox col-12">
+              <Checkbox id="is_internal" v-model="supplier.is_internal" :binary="true" />
+              <label for="is_internal" class="ml-2">Interner Lieferant (für Eigenbestand)</label>
+            </div>
+          </div>
+
+          <small v-if="errorMessage" class="p-error block mt-2">{{ errorMessage }}</small>
+
+          <div class="form-actions mt-4">
+            <Button type="submit" :label="isNewPage ? 'Anlegen' : 'Speichern'" :loading="formLoading" icon="pi pi-check" />
+            <router-link to="/suppliers">
+              <Button label="Abbrechen" class="p-button-text" icon="pi pi-times"/>
+            </router-link>
+          </div>
+        </form>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import supplierService from '@/services/supplierService';
+import { useToast } from 'primevue/usetoast';
+
+// PrimeVue components (Card, InputText, Checkbox, Button) are globally registered
 
 const props = defineProps({
   id: [String, Number], // From route params for editing
-  isNew: {             // Injected from router for /new route
-    type: Boolean,
-    default: false
-  }
 });
 
 const router = useRouter();
-// const route = useRoute(); // Not strictly needed if props are correctly set up by router
+const route = useRoute();
+const toast = useToast();
+
+// Determine if it's a new supplier page based on the route name or presence of id
+const isNewPage = computed(() => route.name === 'SupplierNew');
 
 const supplier = ref({
   supplier_number: '',
@@ -64,57 +83,58 @@ const supplier = ref({
   phone: '',
   is_internal: false,
 });
-const isLoading = ref(false);
+
+const pageLoading = ref(false); // For loading existing supplier data
+const formLoading = ref(false); // For submit action
 const errorMessage = ref('');
-// const isNew = ref(!props.id); // Determine if creating new or editing
 
 onMounted(async () => {
-  if (!props.isNew && props.id) {
-    isLoading.value = true;
+  if (!isNewPage.value && props.id) {
+    pageLoading.value = true;
     try {
       const response = await supplierService.getSupplier(props.id);
       supplier.value = response.data;
     } catch (err) {
       errorMessage.value = 'Fehler beim Laden des Lieferanten: ' + (err.response?.data?.detail || err.message);
+      toast.add({severity:'error', summary: 'Ladefehler', detail: errorMessage.value, life: 5000});
     } finally {
-      isLoading.value = false;
+      pageLoading.value = false;
     }
+  } else {
+    // Optionally generate a new supplier_number suggestion for new suppliers
+    // supplier.value.supplier_number = `S-${Date.now().toString().slice(-6)}`;
   }
 });
 
-// Watch for prop changes if the same component instance is reused for navigation (e.g. edit -> new)
-// This might not be necessary with current router setup (keying or full re-mount)
-// watch(() => props.id, async (newId) => {
-//   isNew.value = !newId;
-//   if (newId) { /* load data */ } else { /* reset form */ }
-// });
-// watch(() => props.isNew, (newIsNewVal) => {
-//  if(newIsNewVal) { /* reset form */ }
-// });
-
-
 const saveSupplier = async () => {
-  isLoading.value = true;
+  formLoading.value = true;
   errorMessage.value = '';
   try {
-    if (props.isNew) {
-      await supplierService.createSupplier(supplier.value);
+    let response;
+    if (isNewPage.value) {
+      response = await supplierService.createSupplier(supplier.value);
+      toast.add({severity:'success', summary: 'Erfolgreich', detail: 'Lieferant angelegt.', life: 3000});
     } else {
-      await supplierService.updateSupplier(props.id, supplier.value);
+      response = await supplierService.updateSupplier(props.id, supplier.value);
+      toast.add({severity:'success', summary: 'Erfolgreich', detail: 'Lieferant aktualisiert.', life: 3000});
     }
     router.push('/suppliers');
   } catch (err) {
     errorMessage.value = 'Fehler beim Speichern: ' + (err.response?.data?.detail || err.message);
+    toast.add({severity:'error', summary: 'Speicherfehler', detail: errorMessage.value, life: 5000});
   } finally {
-    isLoading.value = false;
+    formLoading.value = false;
   }
 };
 </script>
 
 <style scoped>
-/* Form styles are global or defined here */
-.form-group input[type="checkbox"] {
-  width: auto;
-  margin-right: 0.5rem;
+/* Using PrimeFlex for padding (p-p-4), fluid layout (p-fluid), grid, and spacing (mt-2, mt-4, ml-2) */
+.form-actions {
+  display: flex;
+  gap: 0.5rem; /* PrimeFlex 'gap' class can also be used if available in version */
+}
+.field-checkbox label {
+    vertical-align: middle;
 }
 </style>
