@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary  # For PostgreSQL, if you switch from SQLite
+python-jose[cryptography] # For JWT
+passlib[bcrypt] # For password hashing
+pydantic-settings
+alembic # For database migrations
+python-multipart # For form data (OAuth2PasswordRequestForm needs it)
+# requests # For http client, if needed in backend
+# Jinja2 # If you plan to serve some HTML directly from backend
+
+# For SQLite, no extra driver needed if using Python 3.7+
+# If using an older Python or want a specific version:
+# pysqlite3-binary
