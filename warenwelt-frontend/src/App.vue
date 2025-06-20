@@ -1,5 +1,7 @@
 <template>
   <div id="app-container">
+    <Toast position="top-right" />
+    <ConfirmDialog />
     <Navbar v.if="authStore.isAuthenticated" />
     <main class="main-content">
       <router-view />

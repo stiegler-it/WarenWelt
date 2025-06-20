@@ -1,32 +1,41 @@
 <template>
   <div class="login-container">
     <h2>Login</h2>
-    <form @submit.prevent="handleLogin">
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input type="email" id="email" v-model="email" required />
-      </div>
-      <div class="form-group">
-        <label for="password">Password:</label>
-        <input type="password" id="password" v-model="password" required />
-      </div>
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      <button type="submit" :disabled="isLoading">
-        {{ isLoading ? 'Logging in...' : 'Login' }}
-      </button>
-    </form>
+    <Card class="login-card">
+      <template #title>
+        <h2 class="text-center">Login</h2>
+      </template>
+      <template #content>
+        <form @submit.prevent="handleLogin">
+          <div class="field p-fluid">
+            <label for="email">Email</label>
+            <InputText id="email" type="email" v-model="email" required />
+          </div>
+          <div class="field p-fluid">
+            <label for="password">Passwort</label>
+            <InputText id="password" type="password" v-model="password" required />
+          </div>
+          <small v-if="errorMessage" class="p-error block mb-2">{{ errorMessage }}</small>
+          <Button type="submit" label="Login" :loading="isLoading" class="w-full" />
+        </form>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
+import { useToast } from 'primevue/usetoast'; // Import useToast
+
+// PrimeVue components are globally registered, no need to import Button, InputText, Card here.
 
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const isLoading = ref(false);
 const authStore = useAuthStore();
+const toast = useToast(); // Initialize toast
 
 const handleLogin = async () => {
   isLoading.value = true;
@@ -34,8 +43,10 @@ const handleLogin = async () => {
   try {
     await authStore.login(email.value, password.value);
     // Redirect is handled by the auth store's login action
+    // toast.add({ severity: 'success', summary: 'Login erfolgreich', detail: 'Willkommen!', life: 3000 });
   } catch (error) {
-    errorMessage.value = error.response?.data?.detail || 'Login failed. Please check your credentials.';
+    errorMessage.value = error.response?.data?.detail || 'Login fehlgeschlagen. Bitte Zugangsdaten prüfen.';
+    toast.add({ severity: 'error', summary: 'Login Fehlgeschlagen', detail: errorMessage.value, life: 5000 });
   } finally {
     isLoading.value = false;
   }
@@ -43,27 +54,30 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
-  max-width: 400px;
-  margin: 50px auto;
+.login-view-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh; /* Adjust as needed */
   padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
+.login-card {
+  width: 100%;
+  max-width: 450px; /* Max width for the card */
 }
-
-/* .form-group styles are global in App.vue or main.css */
-/* button styles are global */
-
-.error-message {
-  color: red;
-  margin-bottom: 1rem;
+.text-center {
   text-align: center;
+}
+.field {
+  margin-bottom: 1.5rem;
+}
+.p-error.block { /* Ensure error message takes block space */
+    display: block;
+}
+.mb-2 {
+    margin-bottom: 0.5rem; /* PrimeFlex class */
+}
+.w-full { /* PrimeFlex class */
+    width: 100%;
 }
 </style>
