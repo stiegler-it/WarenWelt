@@ -7,3 +7,6 @@ from .product_schema import ProductBase, ProductCreate, ProductRead, ProductUpda
 from .sale_schema import SaleBase, SaleCreate, SaleRead, SaleItemBase, SaleItemCreate, SaleItemRead, PaymentMethodEnum
 from .payout_schema import PayoutBase, PayoutCreate, PayoutRead, SupplierPayoutSummary, PayoutSummaryItem
 from .report_schema import DailySummaryReport, DailySalesReportItem
+from .shelf_schema import ShelfBase, ShelfCreate, ShelfRead, ShelfUpdate, ShelfBasicRead, ShelfStatusEnum
+from .rental_contract_schema import RentalContractBase, RentalContractCreate, RentalContractRead, RentalContractUpdate, RentalContractStatusEnum
+from .rental_invoice_schema import RentalInvoiceBase, RentalInvoiceCreate, RentalInvoiceRead, RentalInvoiceUpdate, RentalInvoiceStatusEnum

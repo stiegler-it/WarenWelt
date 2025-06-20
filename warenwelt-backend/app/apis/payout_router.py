@@ -31,8 +31,8 @@ def get_supplier_payout_summary_route(
 
 
 @router.post("/", response_model=payout_schema.PayoutRead, status_code=status.HTTP_201_CREATED)
-def create_new_payout(
-    payout_in: payout_schema.PayoutCreate, # Only needs supplier_id for MVP
+async def create_new_payout( # Changed to async
+    payout_in: payout_schema.PayoutCreate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_active_user)
 ):
@@ -40,7 +40,8 @@ def create_new_payout(
     # if not current_user.role or current_user.role.name not in ["Admin", "Finance"]:
     #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to create payouts.")
     try:
-        created_payout = payout_service.create_payout_for_supplier(db=db, payout_in=payout_in)
+        # Service function is now async
+        created_payout = await payout_service.create_payout_for_supplier(db=db, payout_in=payout_in)
         return created_payout
     except HTTPException as e:
         raise e

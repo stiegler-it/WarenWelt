@@ -7,6 +7,7 @@ passlib[bcrypt] # For password hashing
 pydantic-settings
 alembic # For database migrations
 python-multipart # For form data (OAuth2PasswordRequestForm needs it)
+fastapi-mail # For sending emails
 # requests # For http client, if needed in backend
 # Jinja2 # If you plan to serve some HTML directly from backend
 

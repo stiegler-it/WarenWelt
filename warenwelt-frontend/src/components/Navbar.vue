@@ -51,19 +51,30 @@ const items = ref([
         { label: 'Lieferanten', icon: 'pi pi-fw pi-users', to: '/suppliers' },
     ]
   },
+  {
+    label: 'Regalvermietung',
+    icon: 'pi pi-fw pi-th-large', // Icon for shelves/layout
+    items: [
+        { label: 'Regalübersicht', icon: 'pi pi-fw pi-table', to: '/shelves'},
+        { label: 'Mietverträge', icon: 'pi pi-fw pi-file-edit', to: '/rental-contracts'}
+        // TODO: Add Rental Invoices link later: { label: 'Mietrechnungen', icon: 'pi pi-fw pi-dollar', to: '/rental-invoices'}
+    ]
+  },
    {
     label: 'Funktionen',
     icon: 'pi pi-fw pi-cog',
     items: [
         { label: 'Preisschilder', icon: 'pi pi-fw pi-print', to: '/products/print-price-tags' },
         { label: 'Auszahlungen', icon: 'pi pi-fw pi-money-bill', to: '/payouts' },
+        { label: 'Datenimport (CSV)', icon: 'pi pi-fw pi-upload', to: '/import-data' },
     ]
   },
   {
     label: 'Berichte',
     icon: 'pi pi-fw pi-chart-bar',
     items: [
-      { label: 'Tagesabschluss', icon: 'pi pi-fw pi-calendar', to: '/reports/daily-summary' },
+      { label: 'Verkaufsübersicht (Tag/Woche/Monat)', icon: 'pi pi-fw pi-calendar', to: '/reports/sales-summary' },
+      { label: 'Umsatzliste (Detail)', icon: 'pi pi-fw pi-list-ol', to: '/reports/revenue-list' },
       // Future reports can be added here
     ]
   }

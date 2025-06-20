@@ -12,6 +12,27 @@ WarenWelt ist ein Warenwirtschaftssystem für SecondHand Shops, das Regalvermiet
 *   Auszahlungen an Lieferanten (vereinfacht)
 *   Benutzerverwaltung (Admin, Mitarbeiter) mit JWT-Authentifizierung
 
+## Features (Phase 2)
+
+Die folgenden Funktionen wurden in Phase 2 hinzugefügt oder erweitert:
+
+*   **Regalvermietungssystem:**
+    *   Verwaltung von Regalen/Flächen (Erstellen, Anzeigen, Bearbeiten, Löschen).
+    *   Verwaltung von Mietverträgen für Lieferanten (Laufzeit, Preis, Status).
+    *   Automatische (simulierte) monatliche Rechnungsstellung für die Miete (Backend-Logik vorhanden, Generierung per API-Aufruf).
+    *   *Hinweis: Vertragsausdruck und grafische Regalübersicht sind noch nicht implementiert.*
+*   **Reporting & Buchhaltung:**
+    *   Tages-, Wochen- und Monatslosungen (Verkaufszusammenfassungen).
+    *   Detaillierte Umsatzlisten mit Ausweisung von Neuware und Kommissionsware.
+    *   CSV-Export für Tages- und Monatslosungen.
+    *   CSV-Export für Umsatzlisten in einem vereinfachten "DATEV-ähnlichen" Format.
+    *   *Hinweis: Die genaue Implementierung der Differenzbesteuerung im Reporting und Export steht noch aus und erfordert buchhalterische Spezifikationen.*
+*   **Lieferanten-Kommunikation:**
+    *   Automatisierter E-Mail-Versand für Auszahlungsbenachrichtigungen an Lieferanten (SMTP-Server muss konfiguriert sein).
+*   **Daten-Import:**
+    *   Import von Artikellisten (Produkten) per CSV.
+    *   Import von Lieferanten per CSV.
+
 ## Technologie-Stack
 
 *   **Backend:** Python, FastAPI, SQLAlchemy, Alembic, Uvicorn
