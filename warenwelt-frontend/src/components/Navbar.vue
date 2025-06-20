@@ -1,75 +1,96 @@
 <template>
-  <header class="navbar">
-    <nav>
-      <ul>
-        <li><router-link to="/dashboard">Dashboard</router-link></li>
-        <li><router-link to="/pos">Kasse</router-link></li>
-        <li><router-link to="/products">Artikel</router-link></li>
-        <li><router-link to="/product-categories">Kategorien</router-link></li>
-        <li><router-link to="/suppliers">Lieferanten</router-link></li>
-        <li><router-link to="/products/print-price-tags">Preisschilder</router-link></li>
-        <li><router-link to="/payouts">Auszahlungen</router-link></li>
-        <li><router-link to="/reports/daily-summary">Tagesabschluss</router-link></li>
-        <li><button @click="handleLogout" class="nav-button">Logout ({{ currentUserEmail }})</button></li>
-      </ul>
-    </nav>
-  </header>
+  <Menubar :model="items" class="warenwelt-menubar">
+    <template #start>
+      <router-link to="/dashboard" class="p-menubar-item-link">
+        <img alt="logo" src="/favicon.ico" height="40" class="mr-2" />
+        <span class="font-bold">WarenWelt</span>
+      </router-link>
+    </template>
+    <template #end>
+      <div class="flex align-items-center">
+        <span class="mr-3" v-if="authStore.user">
+          Angemeldet als: {{ authStore.user.full_name || authStore.user.email }}
+        </span>
+        <Button icon="pi pi-sign-out" label="Logout" @click="handleLogout" class="p-button-sm p-button-text" />
+      </div>
+    </template>
+  </Menubar>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
+import Menubar from 'primevue/menubar'; // Import Menubar
 
 const authStore = useAuthStore();
 const router = useRouter();
 
-const currentUserEmail = computed(() => authStore.user?.email || '');
-
 const handleLogout = () => {
   authStore.logout();
-  // Router push to /login is handled by the store's logout action
 };
+
+// Define menu items reactively based on auth state or roles if needed
+const items = ref([
+  {
+    label: 'Dashboard',
+    icon: 'pi pi-fw pi-home',
+    to: '/dashboard'
+  },
+  {
+    label: 'Kasse',
+    icon: 'pi pi-fw pi-shopping-cart',
+    to: '/pos'
+  },
+  {
+    label: 'Stammdaten',
+    icon: 'pi pi-fw pi-database',
+    items: [
+        { label: 'Artikel', icon: 'pi pi-fw pi-tags', to: '/products' },
+        { label: 'Kategorien', icon: 'pi pi-fw pi-bookmark', to: '/product-categories' },
+        { label: 'Lieferanten', icon: 'pi pi-fw pi-users', to: '/suppliers' },
+    ]
+  },
+   {
+    label: 'Funktionen',
+    icon: 'pi pi-fw pi-cog',
+    items: [
+        { label: 'Preisschilder', icon: 'pi pi-fw pi-print', to: '/products/print-price-tags' },
+        { label: 'Auszahlungen', icon: 'pi pi-fw pi-money-bill', to: '/payouts' },
+    ]
+  },
+  {
+    label: 'Berichte',
+    icon: 'pi pi-fw pi-chart-bar',
+    items: [
+      { label: 'Tagesabschluss', icon: 'pi pi-fw pi-calendar', to: '/reports/daily-summary' },
+      // Future reports can be added here
+    ]
+  }
+  // Add more items or role-based visibility later
+]);
+
+// PrimeVue Menubar 'to' property handles router navigation internally.
+// No need for custom click handlers for navigation items.
 </script>
 
 <style scoped>
-.navbar {
-  background-color: #333; /* Match App.vue header style or define uniquely */
-  color: white;
-  padding: 1rem;
-  /* text-align: center; */ /* Removed to allow ul to center itself better */
+.warenwelt-menubar {
+  border-radius: 0; /* Optional: remove border-radius for a full-width look */
+  /* background-color: var(--surface-card); */ /* Or your specific header color */
 }
 
-nav ul {
-  list-style-type: none;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center; /* Vertically align items */
-  margin: 0; /* Reset margin for ul */
-}
-
-nav ul li {
-  margin: 0 15px;
-}
-
-nav ul li a {
-  color: white;
+/* Custom styling for the router-link if Menubar doesn't style it as desired */
+.p-menubar-item-link {
   text-decoration: none;
-  padding: 0.5rem 0; /* Add some padding for better clickability */
+  color: var(--text-color); /* Or specific color */
+  display: flex;
+  align-items: center;
+}
+.p-menubar-item-link:hover {
+  /* background-color: var(--surface-hover); */
 }
 
-nav ul li a:hover, .nav-button:hover {
-  text-decoration: underline;
-}
-
-.nav-button {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: inherit; /* Ensure same size as links */
-  font-family: inherit;
-  padding: 0.5rem 0; /* Match link padding */
-}
+/* Ensure logout button aligns well and has text color if using p-button-text */
+/* PrimeVue's p-button-text usually handles this, but can be overridden. */
 </style>

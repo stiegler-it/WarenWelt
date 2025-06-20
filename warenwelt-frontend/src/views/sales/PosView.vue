@@ -1,62 +1,92 @@
 <template>
-  <div class="pos-view">
-    <h1>Kasse</h1>
-    <div class="product-input">
-      <input
-        type="text"
-        v-model="skuInput"
-        placeholder="SKU eingeben oder scannen"
-        @keyup.enter="addProductBySku"
-        ref="skuInputRef" />
-      <button @click="addProductBySku" :disabled="!skuInput.trim()">Artikel hinzufügen</button>
-    </div>
+  <div class="pos-view p-p-4">
+    <Card>
+      <template #title>
+        <div class="text-xl font-semibold">Kasse</div>
+      </template>
+      <template #content>
+        <div class="p-fluid grid">
+          <div class="field col-12 md:col-8">
+            <label for="sku_input">SKU eingeben oder scannen</label>
+            <span class="p-input-icon-right">
+                <i v-if="isAddingProduct" class="pi pi-spin pi-spinner" />
+                <InputText
+                    id="sku_input"
+                    type="text"
+                    v-model="skuInput"
+                    placeholder="SKU"
+                    @keyup.enter="addProductBySku"
+                    ref="skuInputRef"
+                />
+            </span>
+          </div>
+          <div class="field col-12 md:col-4 flex align-items-end">
+            <Button
+                label="Artikel hinzufügen"
+                icon="pi pi-plus"
+                @click="addProductBySku"
+                :disabled="!skuInput.trim() || isAddingProduct"
+                class="w-full"
+            />
+          </div>
+        </div>
 
-    <div v-if="scanError" class="error-message">{{ scanError }}</div>
+        <Message v-if="scanError" severity="error" :closable="true" @close="scanError=''">{{ scanError }}</Message>
 
-    <div class="cart" v-if="cartItems.length > 0">
-      <h2>Warenkorb</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>SKU</th>
-            <th>Name</th>
-            <th>Preis</th>
-            <th>Aktion</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(item, index) in cartItems" :key="item.id">
-            <td>{{ item.sku }}</td>
-            <td>{{ item.name }}</td>
-            <td>{{ formatCurrency(item.selling_price) }}</td>
-            <td><button @click="removeFromCart(index)" class="button danger small">Entfernen</button></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="cart-summary">
-        <h3>Gesamt: {{ formatCurrency(totalAmount) }}</h3>
-      </div>
-    </div>
-    <p v-else>Warenkorb ist leer.</p>
+        <div class="cart-section mt-4">
+          <h3 class="text-lg font-semibold mb-2">Warenkorb</h3>
+          <DataTable :value="cartItems" responsiveLayout="scroll" :rows="5" :paginator="cartItems.length > 5">
+            <template #empty>Warenkorb ist leer.</template>
+            <Column field="sku" header="SKU"></Column>
+            <Column field="name" header="Name"></Column>
+            <Column field="selling_price" header="Preis" style="width:120px; text-align:right;">
+              <template #body="{data}">{{ formatCurrency(data.selling_price) }}</template>
+            </Column>
+            <Column header="Aktion" style="width:100px; text-align:center;">
+              <template #body="slotProps">
+                <Button icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text" @click="removeFromCart(slotProps.index)" />
+              </template>
+            </Column>
+          </DataTable>
 
-    <div class="payment-section" v-if="cartItems.length > 0">
-      <label for="payment_method">Zahlungsmethode:</label>
-      <select id="payment_method" v-model="paymentMethod">
-        <option value="CASH">Bar</option>
-        <option value="CARD">Karte</option>
-        <!-- <option value="VOUCHER">Gutschein</option> -->
-      </select>
-      <button @click="processSale" :disabled="isLoadingSale || cartItems.length === 0">
-        {{ isLoadingSale ? 'Verarbeite...' : 'Verkauf abschließen' }}
-      </button>
-    </div>
-     <p v-if="saleSuccessMessage" class="success-message">{{ saleSuccessMessage }}</p>
-     <p v-if="saleErrorMessage" class="error-message">{{ saleErrorMessage }}</p>
+          <div v-if="cartItems.length > 0" class="cart-summary text-right mt-3 p-p-3 surface-ground border-round">
+            <div class="text-xl font-bold">Gesamt: {{ formatCurrency(totalAmount) }}</div>
+          </div>
+        </div>
+
+        <div class="payment-section mt-4" v-if="cartItems.length > 0">
+          <div class="p-fluid grid align-items-center">
+            <div class="field col-12 md:col-6">
+              <label for="payment_method">Zahlungsmethode</label>
+              <Dropdown
+                id="payment_method"
+                v-model="paymentMethod"
+                :options="paymentMethodOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+              />
+            </div>
+            <div class="field col-12 md:col-6 flex align-items-end">
+              <Button
+                label="Verkauf abschließen"
+                icon="pi pi-check-circle"
+                @click="processSale"
+                :loading="isLoadingSale"
+                :disabled="cartItems.length === 0"
+                class="w-full p-button-lg"
+              />
+            </div>
+          </div>
+        </div>
+        <!-- Success/Error messages for sale are handled by Toast -->
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import productService from '@/services/productService';
 import saleService from '@/services/saleService';
 
@@ -65,13 +95,20 @@ import { ref, computed, nextTick } from 'vue'; // Added nextTick
 const skuInput = ref('');
 const skuInputRef = ref(null); // Template ref for the SKU input field
 const cartItems = ref([]); // Stores full product objects fetched from backend
-const scanError = ref('');
-const paymentMethod = ref('CASH'); // Default payment method
-const isLoadingSale = ref(false);
-const saleSuccessMessage = ref('');
-const saleErrorMessage = ref('');
+const scanError = ref(''); // For inline error messages related to SKU input
+const paymentMethod = ref('CASH');
+const isLoadingSale = ref(false); // For the "Verkauf abschließen" button
+const isAddingProduct = ref(false); // For the "Artikel hinzufügen" button and spinner
 
-import { onMounted } from 'vue'; // Ensure onMounted is imported
+const paymentMethodOptions = ref([
+    {label: 'Bar', value: 'CASH'},
+    {label: 'Karte', value: 'CARD'},
+    // {label: 'Gutschein', value: 'VOUCHER'} // If enabled later
+]);
+
+import { useToast } from 'primevue/usetoast';
+const toast = useToast();
+// onMounted is already imported by previous change
 
 onMounted(() => {
   skuInputRef.value?.focus();
@@ -83,9 +120,10 @@ const formatCurrency = (value) => {
 
 const addProductBySku = async () => {
   if (!skuInput.value.trim()) return;
+  isAddingProduct.value = true;
   scanError.value = '';
-  saleSuccessMessage.value = '';
-  saleErrorMessage.value = '';
+  // saleSuccessMessage.value = ''; // Not used anymore, relying on Toast
+  // saleErrorMessage.value = ''; // Not used anymore, scanError is for this part
   try {
     const response = await productService.getProductBySku(skuInput.value.trim());
     const product = response.data;
@@ -109,6 +147,8 @@ const addProductBySku = async () => {
     // console.error(err);
     await nextTick();
     skuInputRef.value?.select(); // Select the text in case of error for easy correction
+  } finally {
+    isAddingProduct.value = false;
   }
 };
 
@@ -122,12 +162,12 @@ const totalAmount = computed(() => {
 
 const processSale = async () => {
   if (cartItems.value.length === 0) {
-    saleErrorMessage.value = "Warenkorb ist leer.";
+    toast.add({ severity: 'warn', summary: 'Warenkorb leer', detail: 'Bitte fügen Sie zuerst Artikel zum Warenkorb hinzu.', life: 3000 });
     return;
   }
   isLoadingSale.value = true;
-  saleSuccessMessage.value = '';
-  saleErrorMessage.value = '';
+  // saleSuccessMessage.value = ''; // Handled by Toast
+  // saleErrorMessage.value = ''; // Handled by Toast
 
   const salePayload = {
     payment_method: paymentMethod.value,
@@ -136,12 +176,20 @@ const processSale = async () => {
 
   try {
     const response = await saleService.createSale(salePayload);
-    saleSuccessMessage.value = `Verkauf ${response.data.transaction_number} erfolgreich abgeschlossen! Gesamtsumme: ${formatCurrency(response.data.total_amount)}.`;
+    toast.add({
+        severity: 'success',
+        summary: 'Verkauf erfolgreich',
+        detail: `Transaktion ${response.data.transaction_number} über ${formatCurrency(response.data.total_amount)} abgeschlossen.`,
+        life: 5000
+    });
     cartItems.value = []; // Clear cart
     skuInput.value = '';
     scanError.value = '';
+    await nextTick();
+    skuInputRef.value?.focus(); // Focus SKU input for next sale
   } catch (err) {
-    saleErrorMessage.value = 'Fehler beim Abschluss des Verkaufs: ' + (err.response?.data?.detail || err.message);
+    const detail = err.response?.data?.detail || 'Unbekannter Fehler beim Abschluss des Verkaufs.';
+    toast.add({ severity: 'error', summary: 'Verkaufsfehler', detail: detail, life: 7000 });
   } finally {
     isLoadingSale.value = false;
   }
@@ -149,42 +197,24 @@ const processSale = async () => {
 </script>
 
 <style scoped>
-.pos-view {
-  max-width: 800px;
-  margin: auto;
+/* Using PrimeFlex for padding (p-p-4) and layout (grid, flex, etc.) */
+/* Specific styling for POS view can be added here */
+
+.pos-view .field label { /* Example of more specific label styling if needed */
+    font-weight: 500; /* Slightly less bold than default form labels if desired */
 }
-.product-input {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+
+.cart-section .p-datatable .p-datatable-thead > tr > th {
+    background-color: var(--surface-b); /* Light background for cart header */
 }
-.product-input input {
-  flex-grow: 1;
-}
-.cart, .payment-section {
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-}
+
 .cart-summary {
-  text-align: right;
-  margin-top: 10px;
-  font-size: 1.2em;
+    /* background-color: var(--surface-section); */ /* Already surface-ground */
 }
-.payment-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+
+.p-button-lg { /* PrimeVue utility class for larger buttons */
+    /* font-size: 1.1rem; */ /* Custom size if needed */
 }
-.success-message {
-  color: green;
-  margin-top: 1rem;
-}
-/* error-message, button, table styles are somewhat global or defined here/App.vue */
-.button.small {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-}
+
+/* Styles for the scan error Message component are handled by PrimeVue themes */
 </style>

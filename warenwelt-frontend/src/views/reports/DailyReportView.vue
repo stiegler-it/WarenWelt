@@ -1,66 +1,107 @@
 <template>
-  <div class="daily-report-view">
-    <h1>Tagesabschluss (Kassensturz)</h1>
+  <div class="daily-report-view p-p-4">
+    <Card>
+      <template #title>
+        Tagesabschluss (Kassensturz)
+      </template>
+      <template #content>
+        <div class="p-fluid grid">
+          <div class="field col-12 md:col-4">
+            <label for="report_date">Datum auswählen</label>
+            <Calendar
+              id="report_date"
+              v-model="selectedDateDt"
+              @date-select="handleDateSelect"
+              dateFormat="dd.mm.yy"
+              :showIcon="true"
+              class="w-full"
+            />
+          </div>
+           <div class="field col-12 md:col-4 flex align-items-end">
+             <Button label="Bericht laden" icon="pi pi-search" @click="fetchDailyReport" :loading="isLoading" />
+           </div>
+        </div>
 
-    <div class="form-group date-selector">
-      <label for="report_date">Datum auswählen:</label>
-      <input type="date" id="report_date" v-model="selectedDate" @change="fetchDailyReport" />
-    </div>
+        <div v-if="isLoading && !reportData" class="text-center p-p-4">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+            <p>Lade Bericht...</p>
+        </div>
+        <Message v-if="error" severity="error" :closable="true" @close="error=''">{{ error }}</Message>
 
-    <div v-if="isLoading" class="loading">Lade Bericht...</div>
-    <div v-if="error" class="error-message">{{ error }}</div>
+        <div v-if="reportData" class="report-content mt-4">
+          <h2 class="text-xl font-semibold mb-3">Bericht für {{ formatDateForDisplay(reportData.report_date) }}</h2>
 
-    <div v-if="reportData" class="report-content">
-      <h2>Bericht für {{ formatDate(reportData.report_date) }}</h2>
+          <Panel header="Gesamtübersicht" toggleable class="mb-3">
+            <div class="grid">
+                <div class="col-6 md:col-3"><strong>Gesamtumsatz:</strong></div>
+                <div class="col-6 md:col-9">{{ formatCurrency(reportData.overall_total_amount) }}</div>
+                <div class="col-6 md:col-3"><strong>Transaktionen:</strong></div>
+                <div class="col-6 md:col-9">{{ reportData.overall_transaction_count }}</div>
+            </div>
+          </Panel>
 
-      <div class="summary-card">
-        <h3>Gesamtübersicht</h3>
-        <p><strong>Gesamtumsatz:</strong> {{ formatCurrency(reportData.overall_total_amount) }}</p>
-        <p><strong>Anzahl Transaktionen:</strong> {{ reportData.overall_transaction_count }}</p>
-      </div>
-
-      <div class="payment-methods-summary">
-        <h3>Umsatz nach Zahlungsart</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Zahlungsart</th>
-              <th>Anzahl Transaktionen</th>
-              <th>Gesamtbetrag</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="pm_summary in reportData.summary_by_payment_method" :key="pm_summary.payment_method">
-              <td>{{ translatePaymentMethod(pm_summary.payment_method) }}</td>
-              <td>{{ pm_summary.transaction_count }}</td>
-              <td>{{ formatCurrency(pm_summary.total_amount) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- Hier könnten später Optionen zum Drucken des Berichts hinzukommen -->
-    </div>
-     <p v-if="!isLoading && !reportData && selectedDate">Keine Daten für das ausgewählte Datum gefunden oder es wurde noch kein Datum gewählt.</p>
+          <Panel header="Umsatz nach Zahlungsart" toggleable>
+            <DataTable :value="reportData.summary_by_payment_method" responsiveLayout="scroll">
+              <Column field="payment_method" header="Zahlungsart">
+                <template #body="{data}">{{ translatePaymentMethod(data.payment_method) }}</template>
+              </Column>
+              <Column field="transaction_count" header="Anzahl Transaktionen" style="text-align:right"></Column>
+              <Column field="total_amount" header="Gesamtbetrag" style="text-align:right">
+                <template #body="{data}">{{ formatCurrency(data.total_amount) }}</template>
+              </Column>
+            </DataTable>
+          </Panel>
+          <!-- Hier könnten später Optionen zum Drucken des Berichts hinzukommen -->
+        </div>
+        <Message v-if="!isLoading && !reportData && selectedDateDt" severity="info" class="mt-4">
+            Keine Daten für das ausgewählte Datum gefunden.
+        </Message>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import saleService from '@/services/saleService';
+import { useToast } from 'primevue/usetoast';
+import Calendar from 'primevue/calendar'; // Import Calendar
+import Panel from 'primevue/panel'; // Import Panel
+// Globally registered: Card, Button, Message, DataTable, Column
 
-const selectedDate = ref(new Date().toISOString().split('T')[0]); // Default to today
+const toast = useToast();
+
+const selectedDateDt = ref(new Date()); // Date object for Calendar
+const selectedDateString = ref(new Date().toISOString().split('T')[0]); // YYYY-MM-DD string for API
 const reportData = ref(null);
 const isLoading = ref(false);
 const error = ref('');
+
+// Watch for changes in Calendar's Date object and update the string for API
+watch(selectedDateDt, (newDate) => {
+  if (newDate instanceof Date) {
+    selectedDateString.value = newDate.toISOString().split('T')[0];
+    // Optionally auto-fetch report on date change, or wait for button click
+    // fetchDailyReport();
+  }
+});
+
+const handleDateSelect = () => {
+    // This callback from Calendar selection can trigger fetch if desired
+    // Or rely on the "Bericht laden" button
+    fetchDailyReport();
+};
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) return '';
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
 };
 
-const formatDate = (dateString) => {
+const formatDateForDisplay = (dateString) => {
   if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('de-DE', {
+  // API returns YYYY-MM-DD, ensure it's treated as local
+  const date = new Date(dateString + 'T00:00:00');
+  return date.toLocaleDateString('de-DE', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 };
@@ -76,9 +117,9 @@ const translatePaymentMethod = (method) => {
 };
 
 const fetchDailyReport = async () => {
-  if (!selectedDate.value) {
-    reportData.value = null;
-    error.value = 'Bitte wählen Sie ein Datum.';
+  if (!selectedDateString.value) {
+    reportData.value = null; // Clear previous data
+    toast.add({severity:'warn', summary: 'Datum fehlt', detail: 'Bitte wählen Sie ein Datum.', life: 3000});
     return;
   }
   isLoading.value = true;
@@ -86,10 +127,15 @@ const fetchDailyReport = async () => {
   reportData.value = null;
 
   try {
-    const response = await saleService.getDailySummary(selectedDate.value);
+    const response = await saleService.getDailySummary(selectedDateString.value);
     reportData.value = response.data;
+    if (response.data.overall_transaction_count === 0) {
+        toast.add({severity:'info', summary: 'Keine Daten', detail: 'Für das gewählte Datum wurden keine Verkäufe gefunden.', life: 3000});
+    }
   } catch (err) {
-    error.value = 'Fehler beim Laden des Tagesberichts: ' + (err.response?.data?.detail || err.message);
+    const detailMsg = err.response?.data?.detail || 'Unbekannter Fehler.';
+    error.value = 'Fehler beim Laden des Tagesberichts: ' + detailMsg;
+    toast.add({severity:'error', summary: 'Ladefehler', detail: error.value, life: 5000});
     reportData.value = null;
   } finally {
     isLoading.value = false;
@@ -105,37 +151,24 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.daily-report-view {
-  max-width: 800px;
-  margin: auto;
+/* Using PrimeFlex for padding (p-p-4), layout (grid, flex, etc.) and spacing (mt-4, mb-3) */
+.field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
 }
-.date-selector {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.w-full { /* Ensure PrimeVue components like Calendar/Dropdown take full width of their grid cell */
+    width: 100%;
 }
-.date-selector input[type="date"] {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
+.text-xl { font-size: 1.25rem; } /* PrimeFlex like */
+.font-semibold { font-weight: 600; } /* PrimeFlex like */
 
-.report-content {
-  margin-top: 20px;
+/* Custom styling for Panel or DataTable if needed */
+:deep(.p-panel .p-panel-header) {
+    /* background-color: var(--surface-c); */
 }
-.summary-card {
-  background-color: #f9f9f9;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 15px;
-  margin-bottom: 20px;
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+    background-color: var(--surface-b);
+    font-weight: bold;
 }
-.summary-card h3 {
-  margin-top: 0;
-}
-.payment-methods-summary table {
-  margin-top: 10px;
-}
-/* Globale Stile für table, loading, error-message werden angenommen */
 </style>
