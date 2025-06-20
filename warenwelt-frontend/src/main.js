@@ -30,6 +30,7 @@ import Checkbox from 'primevue/checkbox';
 import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
 import ConfirmationService from 'primevue/confirmationservice';
+import Menubar from 'primevue/menubar'; // Import Menubar
 
 
 const app = createApp(App);
@@ -53,6 +54,7 @@ app.component('Textarea', Textarea);
 app.component('Checkbox', Checkbox);
 app.component('Dialog', Dialog);
 app.component('ConfirmDialog', ConfirmDialog);
+app.component('Menubar', Menubar); // Register Menubar
 
 // Attempt to initialize auth state as soon as the app loads
 // This helps if the user reloads the page on a protected route
