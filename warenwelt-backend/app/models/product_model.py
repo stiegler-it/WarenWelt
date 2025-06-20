@@ -53,8 +53,8 @@ class Product(Base):
     # MVP Simplifications:
     # storage_deadline = Column(Date, nullable=True)
     # post_deadline_action = Column(SQLAlchemyEnum(PostDeadlineActionEnum, name="post_deadline_action_enum"), nullable=True)
-    # image_url = Column(String(2048), nullable=True)
-    # shelf_location = Column(String(100), nullable=True)
+    image_url = Column(String(2048), nullable=True)
+    shelf_location = Column(String(100), nullable=True)
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

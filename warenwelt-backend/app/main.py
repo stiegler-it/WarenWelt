@@ -9,6 +9,13 @@ from app.apis import (
     sale_router,
     payout_router
 )
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+# Ensure the static directory exists, similar to image_upload_util
+static_dir = Path("static")
+static_dir.mkdir(parents=True, exist_ok=True)
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -23,6 +30,9 @@ app.include_router(product_category_router.router, prefix=f"{settings.API_V1_STR
 app.include_router(product_router.router, prefix=f"{settings.API_V1_STR}/products", tags=["Products"])
 app.include_router(sale_router.router, prefix=f"{settings.API_V1_STR}/sales", tags=["Sales"])
 app.include_router(payout_router.router, prefix=f"{settings.API_V1_STR}/payouts", tags=["Payouts"])
+
+# Mount static files directory for serving product images
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/", tags=["Root"])

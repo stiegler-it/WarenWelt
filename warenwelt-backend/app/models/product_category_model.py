@@ -12,7 +12,7 @@ class ProductCategory(Base):
 
     # For MVP, these are excluded as per plan:
     # parent_category_id = Column(Integer, ForeignKey("product_categories.id"), nullable=True)
-    # differential_tax_surcharge_percent = Column(DECIMAL(5, 2), default=0.00)
+    differential_tax_surcharge_percent = Column(DECIMAL(5, 2), nullable=True, default=0.00)
     # description = Column(String(255), nullable=True)
 
     # children = relationship("ProductCategory", backref=backref('parent', remote_side=[id]))

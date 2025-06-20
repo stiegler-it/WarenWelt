@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pathlib import Path
 
 from app.db.session import get_db
 from app.schemas import product_schema
@@ -8,9 +9,59 @@ from app.services import product_service
 from app.core.security import get_current_active_user
 from app.models.user_model import User as UserModel # For type hint
 from app.models.product_model import ProductStatusEnum
+from .image_upload_util import save_upload_file, remove_file, UPLOAD_DIR # Import utility
+from app.core.config import settings # For constructing full image URL
 
 
 router = APIRouter()
+
+
+@router.post("/{product_id}/upload-image", response_model=product_schema.ProductRead)
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_active_user)
+):
+    db_product = product_service.get_product(db, product_id=product_id)
+    if not db_product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    # Remove old image if it exists
+    if db_product.image_url:
+        remove_file(db_product.image_url)
+        db_product.image_url = None # Clear it before saving new one
+
+    relative_file_path = save_upload_file(upload_file=file)
+
+    # Update product with new image_url
+    updated_product_data = product_schema.ProductUpdate(image_url=relative_file_path)
+
+    # Use the existing update service but ensure it can handle image_url correctly
+    # The service needs to be aware not to overwrite other fields if only image_url is passed.
+    # A specific service function might be cleaner if update_product is complex.
+    updated_db_product = product_service.update_product(db=db, db_product=db_product, product_in=updated_product_data)
+
+    # The ProductRead schema should ideally transform relative image_url to full URL
+    # This is handled by get_product_with_full_image_url in product_service or a property in schema
+    return updated_db_product
+
+
+@router.get("/{product_id}/price-tag", response_model=product_schema.PriceTagData)
+def get_product_price_tag_data(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_active_user) # Or allow anonymous if tags are public
+):
+    db_product = product_service.get_product(db, product_id=product_id)
+    if not db_product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    return product_schema.PriceTagData(
+        product_name=db_product.name,
+        sku=db_product.sku,
+        selling_price=db_product.selling_price
+    )
 
 @router.post("/", response_model=product_schema.ProductRead, status_code=status.HTTP_201_CREATED)
 def create_new_product(

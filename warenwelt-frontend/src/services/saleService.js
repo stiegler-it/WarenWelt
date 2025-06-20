@@ -12,4 +12,7 @@ export default {
   getSale(id) {
     return apiClient.get(`${resource}/${id}`);
   },
+  getDailySummary(date) { // date should be in YYYY-MM-DD format
+    return apiClient.get(`${resource}/summary/daily`, { params: { report_date: date } });
+  }
 };

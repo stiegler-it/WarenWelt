@@ -5,8 +5,11 @@
         <li><router-link to="/dashboard">Dashboard</router-link></li>
         <li><router-link to="/pos">Kasse</router-link></li>
         <li><router-link to="/products">Artikel</router-link></li>
+        <li><router-link to="/product-categories">Kategorien</router-link></li>
         <li><router-link to="/suppliers">Lieferanten</router-link></li>
+        <li><router-link to="/products/print-price-tags">Preisschilder</router-link></li>
         <li><router-link to="/payouts">Auszahlungen</router-link></li>
+        <li><router-link to="/reports/daily-summary">Tagesabschluss</router-link></li>
         <li><button @click="handleLogout" class="nav-button">Logout ({{ currentUserEmail }})</button></li>
       </ul>
     </nav>

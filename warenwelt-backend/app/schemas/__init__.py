@@ -3,6 +3,7 @@ from .user_schema import UserBase, UserCreate, UserRead, UserInDB, RoleBase, Rol
 from .tax_rate_schema import TaxRateBase, TaxRateCreate, TaxRateRead
 from .supplier_schema import SupplierBase, SupplierCreate, SupplierRead, SupplierUpdate
 from .product_category_schema import ProductCategoryBase, ProductCategoryCreate, ProductCategoryRead, ProductCategoryUpdate
-from .product_schema import ProductBase, ProductCreate, ProductRead, ProductUpdate, ProductTypeEnum, ProductStatusEnum
+from .product_schema import ProductBase, ProductCreate, ProductRead, ProductUpdate, ProductTypeEnum, ProductStatusEnum, PriceTagData
 from .sale_schema import SaleBase, SaleCreate, SaleRead, SaleItemBase, SaleItemCreate, SaleItemRead, PaymentMethodEnum
 from .payout_schema import PayoutBase, PayoutCreate, PayoutRead, SupplierPayoutSummary, PayoutSummaryItem
+from .report_schema import DailySummaryReport, DailySalesReportItem

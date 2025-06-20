@@ -135,3 +135,68 @@ def get_sales(
         query = query.filter(Sale.user_id == user_id)
 
     return query.order_by(Sale.transaction_time.desc()).offset(skip).limit(limit).all()
+
+
+from datetime import date, datetime, time
+from app.schemas.report_schema import DailySummaryReport, DailySalesReportItem
+from app.models.sale_model import PaymentMethodEnum
+from sqlalchemy import cast, Date as SQLDate, func as sqlfunc
+
+def get_daily_sales_summary(db: Session, report_date: date) -> DailySummaryReport:
+    start_datetime = datetime.combine(report_date, time.min)
+    end_datetime = datetime.combine(report_date, time.max)
+
+    # Query sales for the given date
+    sales_on_date = db.query(Sale)\
+        .filter(Sale.transaction_time >= start_datetime)\
+        .filter(Sale.transaction_time <= end_datetime)\
+        .all()
+
+    overall_total_amount = Decimal("0.00")
+    overall_transaction_count = len(sales_on_date)
+
+    summary_by_payment_method_dict: Dict[str, Dict[str, any]] = {}
+
+    for sale in sales_on_date:
+        overall_total_amount += sale.total_amount
+        payment_method_str = sale.payment_method.value # Get the string value of the enum
+
+        if payment_method_str not in summary_by_payment_method_dict:
+            summary_by_payment_method_dict[payment_method_str] = {
+                "total_amount": Decimal("0.00"),
+                "transaction_count": 0
+            }
+
+        summary_by_payment_method_dict[payment_method_str]["total_amount"] += sale.total_amount
+        summary_by_payment_method_dict[payment_method_str]["transaction_count"] += 1
+
+    # Convert dict to list of DailySalesReportItem
+    summary_list = [
+        DailySalesReportItem(
+            payment_method=pm,
+            total_amount=data["total_amount"],
+            transaction_count=data["transaction_count"]
+        ) for pm, data in summary_by_payment_method_dict.items()
+    ]
+
+    # Ensure all payment methods are present in the summary, even if count is 0
+    # This makes frontend display easier.
+    all_pm_values = [e.value for e in PaymentMethodEnum]
+    existing_pm_in_summary = [item.payment_method for item in summary_list]
+
+    for pm_value in all_pm_values:
+        if pm_value not in existing_pm_in_summary:
+            summary_list.append(DailySalesReportItem(
+                payment_method=pm_value,
+                total_amount=Decimal("0.00"),
+                transaction_count=0
+            ))
+
+    summary_list.sort(key=lambda x: x.payment_method) # Sort for consistent order
+
+    return DailySummaryReport(
+        report_date=report_date,
+        overall_total_amount=overall_total_amount,
+        overall_transaction_count=overall_transaction_count,
+        summary_by_payment_method=summary_list
+    )

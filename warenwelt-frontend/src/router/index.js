@@ -10,6 +10,10 @@ const ProductListView = () => import('@/views/products/ProductListView.vue');
 const ProductEditView = () => import('@/views/products/ProductEditView.vue'); // For create and update
 const PosView = () => import('@/views/sales/PosView.vue');
 const PayoutView = () => import('@/views/payouts/PayoutView.vue');
+const DailyReportView = () => import('@/views/reports/DailyReportView.vue');
+const PriceTagPrintView = () => import('@/views/products/PriceTagPrintView.vue');
+const ProductCategoryListView = () => import('@/views/categories/ProductCategoryListView.vue'); // Added
+const ProductCategoryEditView = () => import('@/views/categories/ProductCategoryEditView.vue'); // Added
 const NotFoundView = () => import('@/views/NotFoundView.vue'); // Simple 404 page
 
 const routes = [
@@ -71,6 +75,38 @@ const routes = [
     name: 'Payouts',
     component: PayoutView,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/reports/daily-summary', // Or a more general /reports path
+    name: 'DailyReport',
+    component: DailyReportView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/products/print-price-tags',
+    name: 'PriceTagPrint',
+    component: PriceTagPrintView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/product-categories',
+    name: 'ProductCategoryList',
+    component: ProductCategoryListView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/product-categories/new',
+    name: 'ProductCategoryNew',
+    component: ProductCategoryEditView,
+    meta: { requiresAuth: true },
+    // props: { isNew: true } // Handled by checking route.params.id in component
+  },
+  {
+    path: '/product-categories/edit/:id',
+    name: 'ProductCategoryEdit',
+    component: ProductCategoryEditView,
+    meta: { requiresAuth: true },
+    props: true
   },
   {
     path: '/',

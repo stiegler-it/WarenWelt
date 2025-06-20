@@ -115,8 +115,13 @@ def delete_product(db: Session, product_id: int) -> Optional[Product]:
         # Add logic here to check if product can be deleted
         # (e.g., not part of any non-finalized sale, status is appropriate)
         # For MVP, allow direct deletion if status is not 'SOLD' (or similar logic)
-        if db_product.status == "SOLD": # Using string value of enum
+        if db_product.status == ProductStatusEnum.SOLD: # Use the enum member
              raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a product that has been sold.")
+
+        # If product has an image, delete it from filesystem
+        if db_product.image_url:
+            from app.apis.image_upload_util import remove_file # Import here to avoid circular deps at module level
+            remove_file(db_product.image_url)
 
         db.delete(db_product)
         db.commit()

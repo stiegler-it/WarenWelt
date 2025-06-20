@@ -64,3 +64,22 @@ def read_single_sale(
     #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to view this sale.")
 
     return db_sale
+
+from datetime import date as py_date # Alias to avoid conflict with schema.date
+from app.schemas import report_schema as ReportSchema # Alias for clarity
+
+@router.get("/summary/daily", response_model=ReportSchema.DailySummaryReport)
+def get_daily_summary_report(
+    report_date: py_date, # Use date type for query parameter
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_active_user)
+):
+    # Permissions: Ensure only authorized users can access reports
+    # Example: if current_user.role.name not in ["Admin", "Mitarbeiter"]: # Or specific "Accountant" role
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view reports.")
+    try:
+        summary_report = sale_service.get_daily_sales_summary(db, report_date=report_date)
+        return summary_report
+    except Exception as e:
+        # Log error e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate daily summary: {str(e)}")

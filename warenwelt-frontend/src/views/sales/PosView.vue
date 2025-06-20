@@ -6,7 +6,8 @@
         type="text"
         v-model="skuInput"
         placeholder="SKU eingeben oder scannen"
-        @keyup.enter="addProductBySku" />
+        @keyup.enter="addProductBySku"
+        ref="skuInputRef" />
       <button @click="addProductBySku" :disabled="!skuInput.trim()">Artikel hinzufügen</button>
     </div>
 
@@ -59,13 +60,22 @@ import { ref, computed } from 'vue';
 import productService from '@/services/productService';
 import saleService from '@/services/saleService';
 
+import { ref, computed, nextTick } from 'vue'; // Added nextTick
+
 const skuInput = ref('');
+const skuInputRef = ref(null); // Template ref for the SKU input field
 const cartItems = ref([]); // Stores full product objects fetched from backend
 const scanError = ref('');
 const paymentMethod = ref('CASH'); // Default payment method
 const isLoadingSale = ref(false);
 const saleSuccessMessage = ref('');
 const saleErrorMessage = ref('');
+
+import { onMounted } from 'vue'; // Ensure onMounted is imported
+
+onMounted(() => {
+  skuInputRef.value?.focus();
+});
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
@@ -92,9 +102,13 @@ const addProductBySku = async () => {
 
     cartItems.value.push(product);
     skuInput.value = ''; // Clear input after adding
+    await nextTick(); // Wait for DOM to update (input value cleared)
+    skuInputRef.value?.focus(); // Focus the input field again
   } catch (err) {
     scanError.value = `Fehler: Artikel mit SKU '${skuInput.value.trim()}' nicht gefunden oder nicht verfügbar.`;
     // console.error(err);
+    await nextTick();
+    skuInputRef.value?.select(); // Select the text in case of error for easy correction
   }
 };
 

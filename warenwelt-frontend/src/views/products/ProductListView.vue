@@ -8,10 +8,12 @@
     <table v-if="products.length > 0">
       <thead>
         <tr>
+          <th>Bild</th>
           <th>SKU</th>
           <th>Name</th>
           <th>Lieferant</th>
           <th>Kategorie</th>
+          <th>Regalplatz</th>
           <th>VK-Preis</th>
           <th>Status</th>
           <th>Aktionen</th>
@@ -19,10 +21,15 @@
       </thead>
       <tbody>
         <tr v-for="product in products" :key="product.id">
+          <td>
+            <img v-if="product.image_url" :src="getFullImageUrl(product.image_url)" :alt="product.name" class="thumbnail" />
+            <span v-else class="no-image">Kein Bild</span>
+            </td>
           <td>{{ product.sku }}</td>
           <td>{{ product.name }}</td>
           <td>{{ product.supplier?.supplier_number }} - {{ product.supplier?.company_name || product.supplier?.first_name }}</td>
           <td>{{ product.category?.name }}</td>
+          <td>{{ product.shelf_location || '-' }}</td>
           <td>{{ formatCurrency(product.selling_price) }}</td>
           <td>{{ product.status }}</td>
           <td>
@@ -48,6 +55,12 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
 };
 
+const getFullImageUrl = (relativePath) => {
+  if (!relativePath) return null;
+  const backendRootUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api/v1', '');
+  return `${backendRootUrl}/static/${relativePath}`;
+};
+
 onMounted(async () => {
   try {
     const response = await productService.getProducts(); // Add params for filtering/pagination later
@@ -62,4 +75,14 @@ onMounted(async () => {
 
 <style scoped>
 /* Styles */
+.thumbnail {
+  max-width: 60px;
+  max-height: 60px;
+  border: 1px solid #ddd;
+  object-fit: cover;
+}
+.no-image {
+  font-size: 0.8em;
+  color: #888;
+}
 </style>
