@@ -7,7 +7,12 @@ from app.apis import (
     product_category_router,
     product_router,
     sale_router,
-    payout_router
+    payout_router,
+    shelf_router,
+    rental_contract_router,
+    rental_invoice_router,
+    report_router,
+    import_router # Added now
 )
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -30,6 +35,12 @@ app.include_router(product_category_router.router, prefix=f"{settings.API_V1_STR
 app.include_router(product_router.router, prefix=f"{settings.API_V1_STR}/products", tags=["Products"])
 app.include_router(sale_router.router, prefix=f"{settings.API_V1_STR}/sales", tags=["Sales"])
 app.include_router(payout_router.router, prefix=f"{settings.API_V1_STR}/payouts", tags=["Payouts"])
+app.include_router(shelf_router.router, prefix=f"{settings.API_V1_STR}/shelves", tags=["Shelves"])
+app.include_router(rental_contract_router.router, prefix=f"{settings.API_V1_STR}/rental-contracts", tags=["Rental Contracts"])
+app.include_router(rental_invoice_router.router, prefix=f"{settings.API_V1_STR}/rental-invoices", tags=["Rental Invoices"])
+app.include_router(report_router.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
+app.include_router(import_router.router, prefix=f"{settings.API_V1_STR}/import", tags=["Data Import"])
+
 
 # Mount static files directory for serving product images
 app.mount("/static", StaticFiles(directory="static"), name="static")

@@ -4,11 +4,23 @@ from typing import List, Optional
 from decimal import Decimal
 import uuid
 
-from app.models import Supplier, Product, SaleItem, Payout
-from app.models.product_model import ProductTypeEnum, ProductStatusEnum
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import func, and_
+from typing import List, Optional
+from decimal import Decimal
+import uuid
+
+from app.models.supplier_model import Supplier # Explicit import
+from app.models.product_model import Product, ProductTypeEnum, ProductStatusEnum
+from app.models.sale_model import SaleItem, Sale # Sale needed for item preview
+from app.models.payout_model import Payout
 from app.schemas.payout_schema import PayoutCreate, SupplierPayoutSummary, PayoutSummaryItem
-from app.services import supplier_service
+from app.services import supplier_service # To get supplier details
 from fastapi import HTTPException, status
+from app.core.email_utils import send_email # Neu
+from fastapi_mail import MessageType # Neu
+from app.core.config import settings # Neu
+from datetime import date # For payout_date type consistency
 
 def _generate_payout_number(db: Session) -> str:
     """Generates a unique payout number."""
@@ -152,3 +164,116 @@ def get_payouts(
         query = query.filter(Payout.supplier_id == supplier_id)
 
     return query.order_by(Payout.payout_date.desc(), Payout.created_at.desc()).offset(skip).limit(limit).all()
+
+
+# --- Modified create_payout_for_supplier to be async and send email ---
+async def create_payout_for_supplier(db: Session, payout_in: PayoutCreate) -> Payout:
+    supplier = supplier_service.get_supplier(db, supplier_id=payout_in.supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+
+    if not supplier.email:
+        # Depending on policy, this could be a hard error or just a warning where payout is created but no email sent.
+        # For now, let's make it a hard error to enforce data quality.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Supplier {supplier.supplier_number} ({supplier.first_name or ''} {supplier.last_name or ''}) has no email address configured. Payout cannot be created without a notification email address."
+        )
+
+    eligible_sale_items = db.query(SaleItem)\
+        .join(Product, SaleItem.product_id == Product.id)\
+        .filter(Product.supplier_id == payout_in.supplier_id)\
+        .filter(Product.product_type == ProductTypeEnum.COMMISSION)\
+        .filter(SaleItem.payout_id.is_(None))\
+        .filter(SaleItem.commission_amount_at_sale > Decimal("0.00"))\
+        .filter(Product.status == ProductStatusEnum.SOLD)\
+        .all()
+
+    if not eligible_sale_items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No eligible items found for payout for this supplier.")
+
+    total_payout_amount = sum(item.commission_amount_at_sale for item in eligible_sale_items)
+
+    if total_payout_amount <= Decimal("0.00"):
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Total payout amount is zero or less, nothing to pay out.")
+
+    payout_number = _generate_payout_number(db) # Sync function call
+
+    payout_date_to_use: date = payout_in.payout_date if payout_in.payout_date else func.current_date() # type: ignore
+    # If func.current_date() is used, it will be resolved by DB. For email, we might want Python's date.today()
+    if payout_date_to_use == func.current_date(): # type: ignore
+        effective_payout_date = date.today()
+    else:
+        effective_payout_date = payout_date_to_use # type: ignore
+
+    db_payout = Payout(
+        payout_number=payout_number,
+        supplier_id=payout_in.supplier_id,
+        payout_date=payout_date_to_use, # type: ignore
+        total_amount=total_payout_amount,
+        notes=payout_in.notes
+    )
+
+    db.add(db_payout)
+    try:
+        db.flush() # Get db_payout.id for linking items
+    except Exception as e:
+        db.rollback()
+        # Log e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error during payout creation (flush phase): {str(e)}")
+
+    for item in eligible_sale_items:
+        item.payout_id = db_payout.id
+        db.add(item) # Add item to session to mark it for update
+
+    try:
+        db.commit()
+        db.refresh(db_payout) # Refresh to get all fields populated, including DB defaults like created_at
+
+        # Send email notification
+        email_subject = f"Ihre Auszahlung {db_payout.payout_number} von {settings.PROJECT_NAME}"
+
+        # Construct a more detailed body if needed, perhaps with a summary of items or a link
+        # For now, a simple notification.
+        email_body_text = (
+            f"Guten Tag {supplier.first_name or ''} {supplier.last_name or ''},\n\n"
+            f"eine Auszahlung über {db_payout.total_amount:.2f} EUR mit der Nummer {db_payout.payout_number} "
+            f"wurde für Sie am {effective_payout_date.strftime('%d.%m.%Y')} veranlasst und die zugehörigen Artikel wurden abgerechnet.\n\n"
+            # Consider adding a link to a frontend page for this payout if available:
+            # f"Details finden Sie unter: {settings.FRONTEND_URL}/payouts/{db_payout.id}\n\n"
+            f"Vielen Dank für Ihre Zusammenarbeit.\n\n"
+            f"Mit freundlichen Grüßen,\n"
+            f"Ihr Team von {settings.PROJECT_NAME}"
+        )
+
+        if supplier.email: # Should always be true due to check above, but as safeguard
+            email_sent = await send_email( # This is now an async call
+                recipients=[supplier.email],
+                subject=email_subject,
+                body=email_body_text,
+                subtype=MessageType.plain
+            )
+            if not email_sent:
+                # Log that email sending failed. The payout is already committed.
+                # This situation might require manual follow-up or a retry mechanism for emails.
+                # For now, we just log (logging happens within send_email).
+                # Consider adding a field to Payout model: email_notification_status (e.g., "SENT", "FAILED")
+                pass
+
+        # Eager load supplier and items for the response
+        # Note: After an async operation (await send_email), the original db session might behave unexpectedly
+        # if not handled correctly with FastAPI's async context.
+        # However, FastAPI's Depends(get_db) typically handles session per request.
+        # Re-querying might be safer if issues arise, but usually refresh after commit is fine.
+
+        # To ensure the returned object is fully loaded and fresh after async operations:
+        refreshed_payout = db.query(Payout).options(
+            joinedload(Payout.supplier),
+            selectinload(Payout.items_paid_out).joinedload(SaleItem.product)
+        ).filter(Payout.id == db_payout.id).first()
+        return refreshed_payout # type: ignore
+
+    except Exception as e:
+        db.rollback()
+        # Log error e (include payout_number and supplier_id for context)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Could not complete payout transaction or send notification: {str(e)}")

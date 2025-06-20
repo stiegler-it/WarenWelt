@@ -7,14 +7,21 @@ const DashboardView = () => import('@/views/DashboardView.vue');
 const SupplierListView = () => import('@/views/suppliers/SupplierListView.vue');
 const SupplierEditView = () => import('@/views/suppliers/SupplierEditView.vue'); // For create and update
 const ProductListView = () => import('@/views/products/ProductListView.vue');
-const ProductEditView = () => import('@/views/products/ProductEditView.vue'); // For create and update
+const ProductEditView = () => import('@/views/products/ProductEditView.vue');
 const PosView = () => import('@/views/sales/PosView.vue');
 const PayoutView = () => import('@/views/payouts/PayoutView.vue');
-const DailyReportView = () => import('@/views/reports/DailyReportView.vue');
+// const DailyReportView = () => import('@/views/reports/DailyReportView.vue'); // Old, replaced
+const SalesSummaryReportView = () => import('@/views/reports/SalesSummaryReportView.vue');
+const RevenueReportView = () => import('@/views/reports/RevenueReportView.vue');
 const PriceTagPrintView = () => import('@/views/products/PriceTagPrintView.vue');
-const ProductCategoryListView = () => import('@/views/categories/ProductCategoryListView.vue'); // Added
-const ProductCategoryEditView = () => import('@/views/categories/ProductCategoryEditView.vue'); // Added
-const NotFoundView = () => import('@/views/NotFoundView.vue'); // Simple 404 page
+const ProductCategoryListView = () => import('@/views/categories/ProductCategoryListView.vue');
+const ProductCategoryEditView = () => import('@/views/categories/ProductCategoryEditView.vue');
+const DataImportView = () => import('@/views/import/DataImportView.vue'); // Added
+const NotFoundView = () => import('@/views/NotFoundView.vue');
+// Rental Management Views
+const ShelfListView = () => import('@/views/shelves/ShelfListView.vue');
+const RentalContractListView = () => import('@/views/rentalcontracts/RentalContractListView.vue');
+
 
 const routes = [
   { path: '/login', name: 'Login', component: LoginView },
@@ -77,9 +84,15 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/reports/daily-summary', // Or a more general /reports path
-    name: 'DailyReport',
-    component: DailyReportView,
+    path: '/reports/sales-summary',
+    name: 'SalesSummaryReport',
+    component: SalesSummaryReportView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/reports/revenue-list',
+    name: 'RevenueReport',
+    component: RevenueReportView,
     meta: { requiresAuth: true },
   },
   {
@@ -107,6 +120,27 @@ const routes = [
     component: ProductCategoryEditView,
     meta: { requiresAuth: true },
     props: true
+  },
+  // Shelf Management Routes
+  {
+    path: '/shelves',
+    name: 'ShelfList',
+    component: ShelfListView,
+    meta: { requiresAuth: true },
+  },
+  // Rental Contract Management Routes
+  {
+    path: '/rental-contracts',
+    name: 'RentalContractList',
+    component: RentalContractListView,
+    meta: { requiresAuth: true },
+  },
+  // Data Import Route
+  {
+    path: '/import-data',
+    name: 'DataImport',
+    component: DataImportView,
+    meta: { requiresAuth: true }, // Should typically be admin/privileged access
   },
   {
     path: '/',

@@ -6,3 +6,8 @@ from . import product_category_service
 from . import product_service
 from . import sale_service
 from . import payout_service
+from . import shelf_service
+from . import rental_contract_service
+from . import rental_invoice_service
+from . import report_service
+from . import import_service
