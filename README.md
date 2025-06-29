@@ -50,7 +50,7 @@ Die folgenden Funktionen wurden in Phase 2 hinzugefügt oder erweitert:
 1.  **Repository klonen (falls noch nicht geschehen):**
     ```bash
     git clone https://github.com/stiegler-it/WarenWelt.git
-    cd warenwelt # Oder wie das Root-Verzeichnis heißt
+    cd WarenWelt
     ```
 
 2.  **Umgebungsvariablen konfigurieren:**
