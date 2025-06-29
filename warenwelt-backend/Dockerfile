@@ -20,6 +20,7 @@ ENV PYTHONUNBUFFERED 1
 
 # Using requirements.txt
 COPY requirements.txt .
+RUN pip install --no-cache-dir setuptools
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 
